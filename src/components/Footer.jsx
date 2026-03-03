@@ -290,10 +290,7 @@ const Footer = () => {
                         </a>
                     </div>
 
-                    {/* Made with love */}
-                    <p className="text-sm text-gray-500 flex items-center gap-1">
-                        Made with <Heart size={14} className="text-red-500 fill-current animate-pulse" /> for travelers
-                    </p>
+                   
                 </div>
             </div>
         </footer>

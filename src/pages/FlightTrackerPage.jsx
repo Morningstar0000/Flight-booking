@@ -18,6 +18,7 @@ import FlightRouteLine from '../components/FlightRouteLine';
 import FlightDetailsPanel from '../components/FlightDetailsPanel';
 import FlightHistory from '../components/FlightHistory';
 import { supabase } from '../services/supabaseClient';
+import Footer from '../components/Footer';
 
 // Create custom airport icon
 const airportIcon = (() => {
@@ -499,7 +500,7 @@ export default function FlightTrackerPage() {
         <div className="min-h-screen bg-gray-50">
             <Header />
 
-            <div className="max-w-7xl mx-auto px-4 mt-20">
+            <div className="max-w-7xl mx-auto px-4 py-20 mt-20">
                 {/* Back Button */}
                 <button
                     onClick={() => navigate(-1)}
@@ -747,10 +748,10 @@ export default function FlightTrackerPage() {
                         </div>
                     </div>
                 </div>
-
-
+            
+               
             </div>
-
+            <Footer/>
             {/* Animation styles */}
             <style jsx>{`
         @keyframes slideDown {

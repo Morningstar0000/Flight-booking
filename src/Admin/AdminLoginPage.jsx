@@ -153,13 +153,13 @@ export default function AdminLoginPage() {
               </button>
 
               {/* Demo Credentials */}
-              <div className="mt-6 p-4 bg-white/5 rounded-xl border border-white/10">
+              {/* <div className="mt-6 p-4 bg-white/5 rounded-xl border border-white/10">
                 <p className="text-xs text-gray-400 mb-2 text-center">Demo Credentials</p>
                 <div className="flex justify-center gap-4 text-sm">
                   <span className="text-gray-300">Username: <span className="text-blue-400 font-mono">admin</span></span>
                   <span className="text-gray-300">Password: <span className="text-blue-400 font-mono">admin123</span></span>
                 </div>
-              </div>
+              </div> */}
             </form>
           ) : (
             /* Password Reset Form */
@@ -199,7 +199,7 @@ export default function AdminLoginPage() {
         {/* Footer */}
         <div className="px-8 py-4 border-t border-white/10 text-center">
           <p className="text-xs text-gray-500">
-            © 2026 SkyWings. All rights reserved.
+            © 2026 StayFly. All rights reserved.
           </p>
         </div>
       </div>

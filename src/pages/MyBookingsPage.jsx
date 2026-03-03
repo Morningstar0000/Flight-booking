@@ -2,15 +2,15 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import Header from '../components/Header';
 import { bookingService } from '../services/bookingService';
-import { 
-  Search, 
-  Calendar, 
-  Plane, 
-  MapPin, 
-  User, 
-  Mail, 
-  AlertCircle, 
-  CheckCircle, 
+import {
+  Search,
+  Calendar,
+  Plane,
+  MapPin,
+  User,
+  Mail,
+  AlertCircle,
+  CheckCircle,
   XCircle,
   Clock,
   CreditCard,
@@ -55,7 +55,7 @@ export default function MyBookingsPage() {
 
     try {
       const result = await bookingService.getBookingByReferenceAndEmail(
-        ref.toUpperCase(), 
+        ref.toUpperCase(),
         emailAddr
       );
       setBooking(result);
@@ -90,7 +90,7 @@ export default function MyBookingsPage() {
       setToastMessage('Booking cancelled successfully');
       setShowToast(true);
       setTimeout(() => setShowToast(false), 3000);
-      
+
       // Refresh booking
       const updated = await bookingService.getBookingByReference(booking.booking_reference);
       setBooking(updated);
@@ -118,15 +118,15 @@ export default function MyBookingsPage() {
     const [hours, minutes] = timeString.split(':');
     const date = new Date();
     date.setHours(parseInt(hours), parseInt(minutes));
-    return date.toLocaleTimeString('en-US', { 
-      hour: '2-digit', 
+    return date.toLocaleTimeString('en-US', {
+      hour: '2-digit',
       minute: '2-digit',
-      hour12: true 
+      hour12: true
     });
   };
 
   const getPaymentStatusBadge = (status) => {
-    switch(status) {
+    switch (status) {
       case 'completed':
         return {
           bg: 'bg-green-100',
@@ -171,7 +171,7 @@ export default function MyBookingsPage() {
   };
 
   const getBookingStatusBadge = (status) => {
-    switch(status) {
+    switch (status) {
       case 'confirmed':
         return 'bg-green-100 text-green-700 border-green-200';
       case 'cancelled':
@@ -206,7 +206,7 @@ export default function MyBookingsPage() {
   const CancelModal = () => (
     <div className="fixed inset-0 z-50 overflow-y-auto">
       <div className="fixed inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowCancelModal(false)} />
-      
+
       <div className="relative min-h-screen flex items-center justify-center p-4">
         <div className="relative bg-white rounded-3xl shadow-2xl max-w-md w-full animate-slideUp">
           {/* Modal Header */}
@@ -306,14 +306,18 @@ export default function MyBookingsPage() {
   );
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-100 flex flex-col">
       <Header />
       {showToast && <Toast />}
       {showCancelModal && <CancelModal />}
 
-      <div className="max-w-4xl mx-auto px-4 py-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">My Bookings</h1>
-        <p className="text-gray-600 mb-8">Enter your booking reference and email to view your booking</p>
+      <div className="flex-grow flex items-center justify-center py-12 mt-20">
+      <div className="max-w-4xl mx-auto px-4 mb-30">
+
+        <div className="text-center md:text-left">
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">My Bookings</h1>
+          <p className="text-gray-600 mb-8">Enter your booking reference and email to view your booking</p>
+        </div>
 
         {/* Search Form */}
         <div className="bg-white rounded-xl shadow-md p-6 mb-8">
@@ -389,11 +393,9 @@ export default function MyBookingsPage() {
                     {booking.booking_status?.toUpperCase()}
                   </span>
                   {/* Payment Status Badge */}
-                  <span className={`inline-flex items-center gap-1 px-4 py-2 rounded-full text-sm font-medium border ${
-                    getPaymentStatusBadge(booking.payment_status).bg
-                  } ${getPaymentStatusBadge(booking.payment_status).text} ${
-                    getPaymentStatusBadge(booking.payment_status).border
-                  }`}>
+                  <span className={`inline-flex items-center gap-1 px-4 py-2 rounded-full text-sm font-medium border ${getPaymentStatusBadge(booking.payment_status).bg
+                    } ${getPaymentStatusBadge(booking.payment_status).text} ${getPaymentStatusBadge(booking.payment_status).border
+                    }`}>
                     {getPaymentStatusBadge(booking.payment_status).icon}
                     {getPaymentStatusBadge(booking.payment_status).label}
                   </span>
@@ -403,26 +405,23 @@ export default function MyBookingsPage() {
 
             <div className="p-8 space-y-6">
               {/* Payment Status Card - Highlighted for visibility */}
-              <div className={`rounded-xl p-6 border-2 ${
-                booking.payment_status === 'completed' 
-                  ? 'bg-green-50 border-green-200' 
+              <div className={`rounded-xl p-6 border-2 ${booking.payment_status === 'completed'
+                  ? 'bg-green-50 border-green-200'
                   : booking.payment_status === 'pending'
-                  ? 'bg-yellow-50 border-yellow-200'
-                  : 'bg-red-50 border-red-200'
-              }`}>
+                    ? 'bg-yellow-50 border-yellow-200'
+                    : 'bg-red-50 border-red-200'
+                }`}>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <div className={`w-12 h-12 rounded-full flex items-center justify-center ${
-                      booking.payment_status === 'completed' 
+                    <div className={`w-12 h-12 rounded-full flex items-center justify-center ${booking.payment_status === 'completed'
                         ? 'bg-green-100'
                         : booking.payment_status === 'pending'
-                        ? 'bg-yellow-100'
-                        : 'bg-red-100'
-                    }`}>
+                          ? 'bg-yellow-100'
+                          : 'bg-red-100'
+                      }`}>
                       {booking.payment_status === 'completed' ? (
-                        <CheckCircle className={`w-6 h-6 ${
-                          booking.payment_status === 'completed' ? 'text-green-600' : ''
-                        }`} />
+                        <CheckCircle className={`w-6 h-6 ${booking.payment_status === 'completed' ? 'text-green-600' : ''
+                          }`} />
                       ) : booking.payment_status === 'pending' ? (
                         <Clock className="w-6 h-6 text-yellow-600" />
                       ) : (
@@ -431,18 +430,17 @@ export default function MyBookingsPage() {
                     </div>
                     <div>
                       <p className="text-sm text-gray-500">Payment Status</p>
-                      <p className={`text-xl font-bold ${
-                        booking.payment_status === 'completed' 
+                      <p className={`text-xl font-bold ${booking.payment_status === 'completed'
                           ? 'text-green-600'
                           : booking.payment_status === 'pending'
-                          ? 'text-yellow-600'
-                          : 'text-red-600'
-                      }`}>
+                            ? 'text-yellow-600'
+                            : 'text-red-600'
+                        }`}>
                         {booking.payment_status === 'completed' ? 'Payment Completed' :
-                         booking.payment_status === 'pending' ? 'Payment Pending Verification' :
-                         booking.payment_status === 'failed' ? 'Payment Failed' :
-                         booking.payment_status === 'refunded' ? 'Refunded' :
-                         booking.payment_status}
+                          booking.payment_status === 'pending' ? 'Payment Pending Verification' :
+                            booking.payment_status === 'failed' ? 'Payment Failed' :
+                              booking.payment_status === 'refunded' ? 'Refunded' :
+                                booking.payment_status}
                       </p>
                     </div>
                   </div>
@@ -452,13 +450,13 @@ export default function MyBookingsPage() {
                     <p className="text-xs text-gray-500 capitalize">via {booking.payment_method}</p>
                   </div>
                 </div>
-                
+
                 {booking.payment_status === 'pending' && (
                   <div className="mt-4 pt-4 border-t border-yellow-200">
                     <p className="text-sm text-yellow-700 flex items-start gap-2">
                       <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
                       <span>
-                        Your payment is being verified. This usually takes 1-2 hours. 
+                        Your payment is being verified. This usually takes 1-2 hours.
                         You'll receive a confirmation email once verified.
                       </span>
                     </p>
@@ -592,6 +590,8 @@ export default function MyBookingsPage() {
           </div>
         )}
       </div>
+      </div>
+      
 
       <style jsx>{`
         @keyframes slideUp {
