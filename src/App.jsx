@@ -3,8 +3,6 @@ import { Suspense } from 'react'
 import './index.css'
 import HomePage from './pages/HomePage'
 import HotelsPage from './pages/HotelsPage'
-import CarsPage from './pages/CarsPage'
-import DealsPage from './pages/DealsPage'
 import ResultsPage from './pages/ResultsPage'
 import PassengerDetailsPage from './pages/PassengerDetailsPage'
 import PaymentPage from './pages/PaymentPage'
@@ -39,8 +37,6 @@ export default function App() {
             <Route path="/" element={<HomePage />} />
             <Route path="/hotels" element={<HotelsPage />} />
             <Route path="/hotel-details" element={<HotelDetailsPage />} />
-            <Route path="/cars" element={<CarsPage />} />
-            <Route path="/deals" element={<DealsPage />} />
             <Route path="/results" element={<ResultsPage />} />
             <Route path="/flight-summary" element={<FlightSummaryPage />} />
             <Route path="/package-summary" element={<PackageSummaryPage />} />
