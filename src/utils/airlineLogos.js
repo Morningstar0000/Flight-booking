@@ -27,6 +27,7 @@ import southwestLogo from '../assets/airlines-logo/southwest-logo.png';
 import saudiaLogo from '../assets/airlines-logo/saudia-logo.png';
 import southAfricanLogo from '../assets/airlines-logo/south-african-logo.png';
 import virginLogo from '../assets/airlines-logo/virgin-atlantic-logo.png';
+import turkishLogo from '../assets/airlines-logo/Turkish-Airlines-Logo.png';
 
 
 // Map airline names to their logo imports
@@ -57,5 +58,6 @@ export const airlineLogos = {
   'Kenya Airways': kenyaLogo,
   'South African Airways': southAfricanLogo, // You don't have this yet
   'Virgin Atlantic': virginLogo, // You don't have this yet
-  'Etihad Airways': etihadLogo
+  'Etihad Airways': etihadLogo,
+  'Turkish Airlines': turkishLogo
 };
