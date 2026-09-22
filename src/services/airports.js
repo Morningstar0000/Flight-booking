@@ -337,7 +337,10 @@ export const airportDatabase = [
   { code: 'SEZ', name: 'Seychelles International', city: 'Mahé', country: 'Seychelles', lat: -4.6743, lng: 55.5218, type: 'AIRPORT' },
   
   // MALDIVES
-  { code: 'MLE', name: 'Velana International', city: 'Malé', country: 'Maldives', lat: 4.1918, lng: 73.5291, type: 'AIRPORT' }
+  { code: 'MLE', name: 'Velana International', city: 'Malé', country: 'Maldives', lat: 4.1918, lng: 73.5291, type: 'AIRPORT' },
+
+    // BELARUS
+  { code: 'MSQ', name: 'Minsk National Airport', city: 'Minsk', country: 'Belarus', lat: 53.8825, lng: 28.0307, type: 'AIRPORT' }
 ];
 
 // Helper function to search local airports
