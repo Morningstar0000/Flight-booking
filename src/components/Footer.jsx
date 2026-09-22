@@ -216,7 +216,7 @@ const Footer = () => {
                                 <div>
                                     <p className="text-white font-medium">Email Us</p>
                                     <a href="mailto:support@skywings.com" className="text-gray-400 hover:text-white transition-colors">
-                                        stayfly@gmail.com
+                                        stayflyagent@gmail.com
                                     </a>
                                 </div>
                             </div>
@@ -261,7 +261,7 @@ const Footer = () => {
                 {/* Bottom Bar */}
                 <div className="flex flex-col md:flex-row justify-between items-center gap-4">
                     <p className="text-sm text-gray-500">
-                        © {currentYear} StayFly. All rights reserved.
+                        © {2009} StayFly. All rights reserved.
                     </p>
 
                     {/* Legal Links */}

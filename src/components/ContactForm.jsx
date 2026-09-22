@@ -102,7 +102,7 @@ const ContactForm = () => {
       icon: <Mail className="w-6 h-6" />,
       title: 'Email Us',
       description: 'Get a response within 24h',
-      detail: 'stayfly@gmail.com',
+      detail: 'stayflyagent@gmail.com',
       link: 'mailto:stayfly@gmail.com'
     },
     // {
@@ -114,7 +114,7 @@ const ContactForm = () => {
     {
       icon: <Clock className="w-6 h-6" />,
       title: 'Business Hours',
-      description: 'Mon - Fri, 9am - 6pm EST',
+      description: 'Mon - Fri, 6am - 9pm EST',
       detail: 'Weekend support via email'
     }
   ];
