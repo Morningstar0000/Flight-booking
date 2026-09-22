@@ -15,8 +15,19 @@ import {
   Hotel,
   CheckCircle,
   AlertCircle,
-  X
+  X,
+  MessageCircle,
+  Send,
+  Shield,
+  Globe,
+  Info
 } from 'lucide-react';
+
+// ============================================================
+// CONFIGURATION: Change these to your agency's contact details
+// ============================================================
+const AGENCY_CONTACT_EMAIL = 'stayfly.agency@gmail.com';
+const AGENCY_NAME = 'StayFly Travel Agency';
 
 export default function ConfirmationPage() {
   const navigate = useNavigate();
@@ -30,9 +41,19 @@ export default function ConfirmationPage() {
     const loadBooking = async () => {
       try {
         // First try to get from location state
-        if (location.state?.bookingRef) {
-          const bookingData = await bookingService.getBookingByReference(location.state.bookingRef);
-          setBooking(bookingData);
+        if (location.state?.bookingData) {
+          setBooking(location.state.bookingData);
+        } else if (location.state?.bookingRef) {
+          try {
+            const bookingData = await bookingService.getBookingByReference(location.state.bookingRef);
+            setBooking(bookingData);
+          } catch (err) {
+            console.warn('Could not fetch from Supabase, using session storage');
+            const stored = sessionStorage.getItem('bookingData');
+            if (stored) {
+              setBooking(JSON.parse(stored));
+            }
+          }
         } else {
           // Fallback to session storage
           const bookingRef = sessionStorage.getItem('bookingReference');
@@ -71,6 +92,35 @@ export default function ConfirmationPage() {
     }
   };
 
+  // ============================================================
+  // Handle "Contact Agent" button click
+  // ============================================================
+  const handleContactAgent = () => {
+  const bookingRef = booking?.booking_reference || 'TEMP-' + Date.now().toString().slice(-6);
+  const flightDetails = booking?.flight_details;
+  
+  const subject = `Payment for Booking ${bookingRef}`;
+  const body = `
+Dear ${AGENCY_NAME},
+
+I would like to make a payment for my booking.
+
+BOOKING NUMBER
+--------------
+Booking Reference: ${bookingRef}
+
+Total Amount: $${booking?.total_price} USD
+
+Thank you,
+${booking?.passenger_name || 'Customer'}
+  `.trim();
+
+  // Gmail web compose URL — works in any browser!
+  const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(AGENCY_CONTACT_EMAIL)}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+  
+  // Open in new tab
+  window.open(gmailUrl, '_blank');
+};
   const formatDate = (dateString) => {
     if (!dateString) return 'N/A';
     return new Date(dateString).toLocaleDateString('en-US', {
@@ -127,7 +177,7 @@ export default function ConfirmationPage() {
     return (
       <div className="min-h-screen bg-gray-50">
         <Header />
-        <div className="max-w-2xl mx-auto px-4 py-16 text-center">
+        <div className="max-w-2xl mx-auto px-4 pt-28 py-16 text-center">
           <AlertCircle className="w-16 h-16 text-red-400 mx-auto mb-4" />
           <h2 className="text-2xl font-bold text-gray-900 mb-4">Booking Not Found</h2>
           <p className="text-gray-600 mb-6">We couldn't find your booking information.</p>
@@ -158,7 +208,7 @@ export default function ConfirmationPage() {
               <CheckCircle className="w-10 h-10 text-white" />
             </div>
             <h1 className="text-3xl md:text-4xl font-bold text-white mb-2">Booking Confirmed!</h1>
-            <p className="text-green-100">Your flight has been successfully booked.</p>
+            <p className="text-green-100">Your booking has been created successfully.</p>
           </div>
 
           <div className="p-8">
@@ -188,29 +238,17 @@ export default function ConfirmationPage() {
                     ) : (
                       <>
                         <AlertCircle className="w-3 h-3" />
-                        Payment Pending Verification
+                        Payment Pending
                       </>
                     )}
                   </span>
                 </div>
               </div>
               <div className="text-right">
-                <p className="text-sm text-gray-600">Amount</p>
+                <p className="text-sm text-gray-600">Amount Due</p>
                 <p className="text-xl font-bold text-gray-900">${booking.total_price}</p>
               </div>
             </div>
-
-            {booking.payment_status === 'pending' && (
-              <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-6">
-                <p className="text-sm text-blue-800 flex items-start gap-2">
-                  <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
-                  <span>
-                    Your payment is being verified. This usually takes 1-2 hours.
-                    You'll receive a confirmation email once verified.
-                  </span>
-                </p>
-              </div>
-            )}
 
             {/* Seat Information */}
             <div className="bg-purple-50 rounded-xl p-4 flex items-center justify-between mb-6">
@@ -228,6 +266,110 @@ export default function ConfirmationPage() {
           </div>
         </div>
 
+        {/* ============================================================ */}
+        {/* NEW: CONTACT AGENT SECTION */}
+        {/* ============================================================ */}
+        <div className="bg-white rounded-2xl shadow-xl overflow-hidden mb-8">
+          <div className="bg-gradient-to-r from-blue-600 to-indigo-600 px-8 py-4">
+            <h2 className="text-xl font-bold text-white flex items-center gap-2">
+              <MessageCircle className="w-5 h-5" />
+              Make Your Payment
+            </h2>
+          </div>
+
+          <div className="p-8 space-y-6">
+            {/* Info Box */}
+            <div className="bg-blue-50 border border-blue-200 rounded-xl p-6">
+              <div className="flex items-start gap-4">
+                <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
+                  <Mail className="w-6 h-6 text-blue-600" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-blue-900 mb-2">
+                    Contact Our Agent for Payment
+                  </h3>
+                  <p className="text-blue-800 text-sm leading-relaxed">
+                    To make your payment securely, please contact our travel agent directly. 
+                    Our team will guide you through the payment process and confirm your booking.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* What Happens Next */}
+            <div className="border border-gray-200 rounded-xl p-6">
+              <div className="flex items-center gap-2 mb-4">
+                <Info className="w-5 h-5 text-blue-600" />
+                <h3 className="font-bold text-gray-900">What happens next?</h3>
+              </div>
+              <ol className="space-y-3">
+                <li className="flex items-start gap-3">
+                  <span className="w-6 h-6 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center flex-shrink-0 text-xs font-bold">1</span>
+                  <span className="text-sm text-gray-700">
+                    Click the <strong>"Contact Agent"</strong> button below
+                  </span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <span className="w-6 h-6 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center flex-shrink-0 text-xs font-bold">2</span>
+                  <span className="text-sm text-gray-700">
+                    Your email app opens with your booking details pre-filled
+                  </span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <span className="w-6 h-6 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center flex-shrink-0 text-xs font-bold">3</span>
+                  <span className="text-sm text-gray-700">
+                    Send the email to our team
+                  </span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <span className="w-6 h-6 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center flex-shrink-0 text-xs font-bold">4</span>
+                  <span className="text-sm text-gray-700">
+                    Our agent replies within <strong>1-2 hours</strong> with payment instructions
+                  </span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <span className="w-6 h-6 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center flex-shrink-0 text-xs font-bold">5</span>
+                  <span className="text-sm text-gray-700">
+                    Complete payment and receive your e-ticket via email
+                  </span>
+                </li>
+              </ol>
+            </div>
+
+            {/* Contact Details */}
+            <div className="bg-gray-50 rounded-xl p-6">
+              <h3 className="font-bold text-gray-900 mb-3">Our Contact Details</h3>
+              <div className="space-y-2 text-sm">
+                <p className="flex items-center gap-2">
+                  <Mail className="w-4 h-4 text-blue-600" />
+                  <span className="text-gray-600">Email:</span>
+                  <span className="font-medium text-gray-900">{AGENCY_CONTACT_EMAIL}</span>
+                </p>
+                <p className="flex items-center gap-2">
+                  <Globe className="w-4 h-4 text-blue-600" />
+                  <span className="text-gray-600">Agency:</span>
+                  <span className="font-medium text-gray-900">{AGENCY_NAME}</span>
+                </p>
+              </div>
+            </div>
+
+            {/* Contact Agent Button */}
+            <button
+              onClick={handleContactAgent}
+              className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold py-5 px-6 rounded-xl transition-all flex items-center justify-center gap-3 text-lg shadow-lg shadow-blue-600/30 hover:shadow-xl hover:scale-[1.02] active:scale-[0.98]"
+            >
+              <Send className="w-6 h-6" />
+              Contact Agent
+            </button>
+
+            {/* Trust Note */}
+            <div className="flex items-center justify-center gap-2 text-xs text-gray-500">
+              <Shield className="w-4 h-4 text-green-600" />
+              <span>Your information is safe and will only be used for this booking</span>
+            </div>
+          </div>
+        </div>
+
         {/* Flight Summary */}
         <div className="bg-white rounded-2xl shadow-xl overflow-hidden mb-8">
           <div className="bg-gradient-to-r from-blue-600 to-indigo-600 px-8 py-4">
@@ -238,7 +380,6 @@ export default function ConfirmationPage() {
           </div>
 
           <div className="p-8">
-            {/* Airline & Flight Info */}
             <div className="flex flex-wrap justify-between items-center mb-6 pb-6 border-b border-gray-200">
               <div>
                 <p className="text-sm text-gray-500">Airline</p>
@@ -258,7 +399,6 @@ export default function ConfirmationPage() {
               </div>
             </div>
 
-            {/* Route */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-center mb-6">
               <div className="text-center md:text-left">
                 <p className="text-sm text-gray-500 mb-1">From</p>
@@ -288,7 +428,6 @@ export default function ConfirmationPage() {
               </div>
             </div>
 
-            {/* Times */}
             <div className="grid grid-cols-2 gap-4 bg-gray-50 rounded-xl p-4">
               <div>
                 <p className="text-xs text-gray-500">Departure</p>
@@ -302,7 +441,7 @@ export default function ConfirmationPage() {
           </div>
         </div>
 
-        {/* Hotel Summary (if package) */}
+        {/* Hotel Summary */}
         {hotelDetails && (
           <div className="bg-white rounded-2xl shadow-xl overflow-hidden mb-8">
             <div className="bg-gradient-to-r from-purple-600 to-pink-600 px-8 py-4">
@@ -389,10 +528,12 @@ export default function ConfirmationPage() {
               )}
               <div className="border-t border-gray-200 pt-3 mt-3">
                 <div className="flex justify-between font-bold">
-                  <span>Total Paid</span>
+                  <span>Total Amount Due</span>
                   <span className="text-blue-600 text-xl">${booking.total_price}</span>
                 </div>
-                <p className="text-xs text-gray-500 mt-1">Payment via {booking.payment_method}</p>
+                <p className="text-xs text-gray-500 mt-1">
+                  Payment pending - contact agent to make payment
+                </p>
               </div>
             </div>
           </div>
@@ -424,6 +565,10 @@ export default function ConfirmationPage() {
           <ul className="space-y-2 text-sm text-blue-800">
             <li className="flex items-start gap-2">
               <span className="w-1.5 h-1.5 bg-blue-400 rounded-full mt-2"></span>
+              Your booking is held for <strong>5 hours</strong>. Please complete payment before then or it will be cancelled.
+            </li>
+            <li className="flex items-start gap-2">
+              <span className="w-1.5 h-1.5 bg-blue-400 rounded-full mt-2"></span>
               Please arrive at the airport at least 3 hours before your flight
             </li>
             <li className="flex items-start gap-2">
@@ -432,11 +577,7 @@ export default function ConfirmationPage() {
             </li>
             <li className="flex items-start gap-2">
               <span className="w-1.5 h-1.5 bg-blue-400 rounded-full mt-2"></span>
-              You can manage your booking from the "My Bookings" page using your booking reference {booking.booking_reference}
-            </li>
-            <li className="flex items-start gap-2">
-              <span className="w-1.5 h-1.5 bg-blue-400 rounded-full mt-2"></span>
-              A confirmation email has been sent to {booking.passenger_email}
+              Save your booking reference <strong>{booking.booking_reference}</strong> to manage your booking later
             </li>
           </ul>
         </div>

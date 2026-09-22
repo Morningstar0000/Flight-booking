@@ -12,9 +12,18 @@ import {
   Banknote,
   Landmark,
   Smartphone,
-  Globe
+  Globe,
+  Mail,
+  MessageCircle,
+  Send,
+  Clock,
+  Calendar,
+  Plane,
+  Info,
+  XCircle
 } from 'lucide-react';
 import { paymentService } from '../services/paymentService';
+import { bookingService } from '../services/bookingService';
 
 // Map icon strings to actual components
 const iconMap = {
@@ -25,6 +34,16 @@ const iconMap = {
   Smartphone: <Smartphone className="w-5 h-5" />,
   Globe: <Globe className="w-5 h-5" />
 };
+
+// ============================================================
+// CONFIGURATION
+// ============================================================
+const AGENCY_CONTACT_EMAIL = 'stayfly.agency@gmail.com';
+const AGENCY_NAME = 'StayFly Travel Agency';
+
+// Time constraints (in minutes)
+const BOOKING_WINDOW_MINUTES = 5 * 60;      // 5 hours to complete payment
+const MIN_BOOKING_BEFORE_DEPARTURE = 30;    // 30 minutes before departure
 
 export default function PaymentPage() {
   const location = useLocation();
@@ -39,6 +58,13 @@ export default function PaymentPage() {
   const [success, setSuccess] = useState(false);
   const [errors, setErrors] = useState({});
 
+  // Booking window state
+  const [bookingDeadline, setBookingDeadline] = useState(null);
+  const [timeRemaining, setTimeRemaining] = useState(null);
+  const [canBook, setCanBook] = useState(true);
+  const [bookingError, setBookingError] = useState('');
+  const [createdBooking, setCreatedBooking] = useState(null);
+
   // Form state for card payment
   const [cardDetails, setCardDetails] = useState({
     cardNumber: '',
@@ -48,7 +74,6 @@ export default function PaymentPage() {
     billingAddress: ''
   });
 
-  // Form state for other payment methods
   const [cryptoDetails, setCryptoDetails] = useState({
     walletAddress: '',
     currency: 'BTC'
@@ -61,14 +86,228 @@ export default function PaymentPage() {
     bankName: ''
   });
 
-  // Fetch payment methods from database
+  // ============================================================
+  // INITIALIZE: Set booking deadline and check if can book
+  // ============================================================
+  useEffect(() => {
+    if (!flight) return;
+
+    const now = new Date();
+
+    // Check 1: Can't book within 30 minutes of departure
+    const departureDateTime = getFlightDepartureDateTime(flight);
+    const minutesUntilDeparture = (departureDateTime - now) / (1000 * 60);
+
+    if (minutesUntilDeparture < MIN_BOOKING_BEFORE_DEPARTURE) {
+      setCanBook(false);
+      if (minutesUntilDeparture < 0) {
+        setBookingError('This flight has already departed. You cannot book this flight.');
+      } else {
+        setBookingError(
+          `Booking is closed for this flight. You cannot book within ${MIN_BOOKING_BEFORE_DEPARTURE} minutes of departure.`
+        );
+      }
+      return;
+    }
+
+    // Check 2: Set 5-hour booking window
+    const deadline = new Date(now.getTime() + BOOKING_WINDOW_MINUTES * 60 * 1000);
+    
+    // But if departure is sooner than 5 hours, use departure time as deadline (minus 30 min buffer)
+    const departureDeadline = new Date(departureDateTime.getTime() - MIN_BOOKING_BEFORE_DEPARTURE * 60 * 1000);
+    const finalDeadline = deadline < departureDeadline ? deadline : departureDeadline;
+    
+    setBookingDeadline(finalDeadline);
+
+    // Start the countdown timer
+    const interval = setInterval(() => {
+      const timeLeft = finalDeadline - new Date();
+      if (timeLeft <= 0) {
+        setTimeRemaining(null);
+        setCanBook(false);
+        setBookingError('Your booking window has expired. Please search for flights again.');
+        clearInterval(interval);
+      } else {
+        setTimeRemaining(timeLeft);
+      }
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [flight]);
+
+  // Helper: Get flight departure as a Date object
+  const getFlightDepartureDateTime = (flight) => {
+    // flight.date is "2026-09-23" and flight.departureTime is "14:45"
+    const dateStr = flight.date;
+    const timeStr = flight.departureTime || '00:00';
+    
+    // Handle both "HH:MM" and "HH:MM:SS" formats
+    const timeParts = timeStr.split(':');
+    const hours = parseInt(timeParts[0]);
+    const minutes = parseInt(timeParts[1]);
+    
+    const departure = new Date(`${dateStr}T00:00:00`);
+    departure.setHours(hours, minutes, 0, 0);
+    
+    return departure;
+  };
+
+  // Format remaining time as "Xh Ym Zs"
+  const formatTimeRemaining = (ms) => {
+    if (!ms || ms <= 0) return 'Expired';
+    const totalSeconds = Math.floor(ms / 1000);
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
+    return `${hours}h ${minutes}m ${seconds}s`;
+  };
+
+  // Format deadline as readable date
+  const formatDeadline = (date) => {
+    if (!date) return 'N/A';
+    return date.toLocaleString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
+  // ============================================================
+  // HANDLE BOOKING: Create booking and go to confirmation page
+  // ============================================================
+  const handleBook = async () => {
+  if (!canBook) {
+    setBookingError('Booking is not available at this time.');
+    return;
+  }
+
+  setProcessing(true);
+  setBookingError('');
+
+  try {
+    // Generate booking reference
+    const bookingRef = bookingService.generateBookingReference();
+    
+    // Generate seat number
+    const seatNumber = bookingService.generateSeatNumber();
+
+    // Prepare flight details
+    const flightDetails = {
+      airline: flight.airline,
+      flightNumber: flight.flightNumber,
+      from: flight.from,
+      to: flight.to,
+      departureTime: flight.departureTime,
+      arrivalTime: flight.arrivalTime,
+      date: flight.date,
+      duration: flight.duration,
+      aircraft: flight.aircraft,
+      cabinClass: flight.cabinClass,
+      price: flight.price,
+      stops: flight.stops,
+      stopInfo: flight.stopInfo
+    };
+
+    // Prepare hotel details if package
+    let hotelDetails = null;
+    if (hotel) {
+      hotelDetails = {
+        name: hotel.hotel?.name,
+        checkIn: hotelPackage?.checkIn,
+        checkOut: hotelPackage?.checkOut,
+        guests: hotelPackage?.guests,
+        price: hotelPackage?.hotelPrice
+      };
+    }
+
+    // Prepare baggage allowance
+    const baggageAllowance = {
+      cabin: '1 piece (7kg)',
+      checked: flight.cabinClass === 'First' || flight.cabinClass === 'Business'
+        ? '2 pieces (32kg each)'
+        : '1 piece (23kg)'
+    };
+
+    // Create booking object (local)
+    const bookingData = {
+      booking_reference: bookingRef,
+      passenger_email: passengerDetails.email,
+      passenger_name: passengerDetails.fullName,
+      passenger_dob: passengerDetails.dob || null,
+      passenger_phone: passengerDetails.phone,
+      passenger_passport: passengerDetails.passportNumber || passengerDetails.passport || null,
+      flight_id: flight.id,
+      flight_details: flightDetails,
+      hotel_id: hotel?.id || null,
+      hotel_details: hotelDetails,
+      total_price: calculateTotal(),
+      payment_method: 'contact_agent',
+      payment_status: 'pending',
+      booking_status: 'pending',
+      seat_number: seatNumber,
+      baggage_allowance: baggageAllowance,
+      created_at: new Date().toISOString()
+    };
+
+    // Try to save to Supabase (but don't crash if it fails)
+    let savedBooking = bookingData;
+    try {
+      const result = await bookingService.createBooking(bookingData);
+      if (result) {
+        savedBooking = result;
+        console.log('✅ Booking saved to Supabase:', result);
+      }
+    } catch (dbError) {
+      console.warn('⚠️ Could not save to Supabase, using local data:', dbError.message);
+      // Continue anyway - we'll use sessionStorage
+    }
+
+    setCreatedBooking(savedBooking);
+
+    // Save to sessionStorage for the confirmation page
+    sessionStorage.setItem('bookingReference', bookingRef);
+    sessionStorage.setItem('bookingData', JSON.stringify(savedBooking));
+
+    // Brief success animation
+    setProcessing(false);
+    setSuccess(true);
+
+    // Redirect to confirmation page
+    setTimeout(() => {
+      navigate('/confirmation', {
+        state: {
+          bookingRef,
+          flight,
+          hotel,
+          isPackage,
+          totalPrice: calculateTotal(),
+          passengerDetails,
+          paymentMethod: 'contact_agent',
+          bookingData: savedBooking
+        }
+      });
+    }, 1500);
+
+  } catch (error) {
+    console.error('Error creating booking:', error);
+    setProcessing(false);
+    setBookingError(
+      'Failed to create booking. Please try again or contact support.'
+    );
+  }
+};
+
+  // ============================================================
+  // ORBITED (KEPT FOR FUTURE USE): Payment methods fetching
+  // ============================================================
+  /*
   useEffect(() => {
     const fetchPaymentMethods = async () => {
       try {
         const methods = await paymentService.getPaymentMethods();
         setPaymentMethods(methods);
         
-        // Group the methods - keep crypto currencies together
         const grouped = [];
         const cryptoMethods = [];
         const otherMethods = [];
@@ -81,7 +320,6 @@ export default function PaymentPage() {
           }
         });
         
-        // If there are crypto methods, add them as one grouped item
         if (cryptoMethods.length > 0) {
           grouped.push({
             id: 'crypto-group',
@@ -97,7 +335,6 @@ export default function PaymentPage() {
         
         setGroupedMethods([...otherMethods, ...grouped]);
         
-        // Set default payment method
         if (otherMethods.length > 0) {
           setPaymentMethod(otherMethods[0].name);
         } else if (cryptoMethods.length > 0) {
@@ -113,129 +350,29 @@ export default function PaymentPage() {
 
     fetchPaymentMethods();
   }, []);
+  */
 
+  useEffect(() => {
+    setLoadingMethods(false);
+  }, []);
+
+  // ============================================================
+  // ORBITED: Payment handlers
+  // ============================================================
+  /*
   const getCryptoPrice = (currency) => {
-    const prices = {
-      BTC: 65000,
-      ETH: 3500,
-      USDT: 1,
-      BNB: 450
-    };
+    const prices = { BTC: 65000, ETH: 3500, USDT: 1, BNB: 450 };
     return prices[currency] || 1;
   };
 
-  const handleWireTransfer = () => {
-    const amount = calculateTotal();
-    navigate('/payment-processing', {
-      state: {
-        paymentMethod: 'wire',
-        amount,
-        flight,
-        hotel,
-        passengerDetails,
-        isPackage,
-        searchParams,
-        hotelPackage
-      }
-    });
-  };
-
-  const handleCryptoPayment = (currency) => {
-    const amount = calculateTotal();
-    navigate('/payment-processing', {
-      state: {
-        paymentMethod: 'crypto',
-        currency,
-        amount,
-        flight,
-        hotel,
-        passengerDetails,
-        isPackage,
-        searchParams,
-        hotelPackage
-      }
-    });
-  };
-
-  const handlePayPalPayment = () => {
-    const amount = calculateTotal();
-    navigate('/payment-processing', {
-      state: {
-        paymentMethod: 'paypal',
-        amount,
-        flight,
-        hotel,
-        passengerDetails,
-        isPackage,
-        searchParams,
-        hotelPackage
-      }
-    });
-  };
-
-  const handleApplePayPayment = () => {
-    const amount = calculateTotal();
-    navigate('/payment-processing', {
-      state: {
-        paymentMethod: 'applepay',
-        amount,
-        flight,
-        hotel,
-        passengerDetails,
-        isPackage,
-        searchParams,
-        hotelPackage
-      }
-    });
-  };
-
-  const handleGooglePayPayment = () => {
-    const amount = calculateTotal();
-    navigate('/payment-processing', {
-      state: {
-        paymentMethod: 'googlepay',
-        amount,
-        flight,
-        hotel,
-        passengerDetails,
-        isPackage,
-        searchParams,
-        hotelPackage
-      }
-    });
-  };
-
-  const handleCashAppPayment = () => {
-    const amount = calculateTotal();
-    navigate('/payment-processing', {
-      state: {
-        paymentMethod: 'cashapp',
-        amount,
-        flight,
-        hotel,
-        passengerDetails,
-        isPackage,
-        searchParams,
-        hotelPackage
-      }
-    });
-  };
-
-  const handleVenmoPayment = () => {
-    const amount = calculateTotal();
-    navigate('/payment-processing', {
-      state: {
-        paymentMethod: 'venmo',
-        amount,
-        flight,
-        hotel,
-        passengerDetails,
-        isPackage,
-        searchParams,
-        hotelPackage
-      }
-    });
-  };
+  const handleWireTransfer = () => { ... };
+  const handleCryptoPayment = (currency) => { ... };
+  const handlePayPalPayment = () => { ... };
+  const handleApplePayPayment = () => { ... };
+  const handleGooglePayPayment = () => { ... };
+  const handleCashAppPayment = () => { ... };
+  const handleVenmoPayment = () => { ... };
+  */
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -246,7 +383,7 @@ export default function PaymentPage() {
     return (
       <div className="min-h-screen bg-gray-50">
         <Header />
-        <div className="max-w-7xl mx-auto px-4 py-16 text-center">
+        <div className="max-w-7xl mx-auto px-4 pt-28 py-16 text-center">
           <AlertCircle className="w-16 h-16 text-red-400 mx-auto mb-4" />
           <h2 className="text-2xl font-bold text-gray-900 mb-2">No Booking Information</h2>
           <p className="text-gray-600 mb-6">Please start your booking from the beginning.</p>
@@ -260,79 +397,6 @@ export default function PaymentPage() {
       </div>
     );
   }
-
-  const validateCardForm = () => {
-    const newErrors = {};
-
-    if (!cardDetails.cardNumber.replace(/\s/g, '').match(/^\d{16}$/)) {
-      newErrors.cardNumber = 'Card number must be 16 digits';
-    }
-    if (!cardDetails.cardholderName.trim()) {
-      newErrors.cardholderName = 'Cardholder name is required';
-    }
-    if (!cardDetails.expiryDate.match(/^(0[1-9]|1[0-2])\/([0-9]{2})$/)) {
-      newErrors.expiryDate = 'Use MM/YY format';
-    }
-    if (!cardDetails.cvv.match(/^\d{3,4}$/)) {
-      newErrors.cvv = 'CVV must be 3 or 4 digits';
-    }
-    if (!cardDetails.billingAddress.trim()) {
-      newErrors.billingAddress = 'Billing address is required';
-    }
-
-    return newErrors;
-  };
-
-  const handlePayment = async (e) => {
-    e.preventDefault();
-
-    if (paymentMethod === 'card') {
-      const newErrors = validateCardForm();
-      if (Object.keys(newErrors).length > 0) {
-        setErrors(newErrors);
-        return;
-      }
-    }
-
-    setProcessing(true);
-
-    setTimeout(() => {
-      setProcessing(false);
-      setSuccess(true);
-
-      const bookingRef = 'BK' + Math.random().toString(36).substring(2, 8).toUpperCase();
-
-      setTimeout(() => {
-        navigate('/confirmation', {
-          state: {
-            bookingRef,
-            flight,
-            hotel,
-            isPackage,
-            totalPrice,
-            passengerDetails,
-            paymentMethod
-          }
-        });
-      }, 1500);
-    }, 2000);
-  };
-
-  const formatCardNumber = (value) => {
-    const v = value.replace(/\s+/g, '').replace(/[^0-9]/gi, '');
-    const matches = v.match(/\d{4,16}/g);
-    const match = (matches && matches[0]) || '';
-    const parts = [];
-
-    for (let i = 0; i < match.length; i += 4) {
-      parts.push(match.substring(i, i + 4));
-    }
-
-    if (parts.length) {
-      return parts.join(' ');
-    }
-    return value;
-  };
 
   const calculateSubtotal = () => {
     if (!flight) return 0;
@@ -351,12 +415,42 @@ export default function PaymentPage() {
     return calculateSubtotal() + calculateTaxes();
   };
 
-  // Get the selected payment method details
-  const getSelectedMethodDetails = () => {
-    return groupedMethods.find(m => m.name === paymentMethod);
-  };
+  // ============================================================
+  // Handle "Contact Agent" button click
+  // ============================================================
+  const handleContactAgent = () => {
+    const total = calculateTotal();
+    const bookingRef = createdBooking?.booking_reference || 'TEMP-' + Date.now().toString().slice(-6);
+    
+    const subject = `Payment Inquiry - Booking ${bookingRef}`;
+    const body = `
+Dear ${AGENCY_NAME},
 
-  const selectedMethod = getSelectedMethodDetails();
+I would like to complete payment for my booking.
+
+BOOKING DETAILS
+--------------
+Booking Reference: ${bookingRef}
+Passenger Name: ${passengerDetails?.fullName || 'N/A'}
+Email: ${passengerDetails?.email || 'N/A'}
+Phone: ${passengerDetails?.phone || 'N/A'}
+
+Flight: ${flight.airline} ${flight.flightNumber}
+Route: ${flight.from?.code} → ${flight.to?.code}
+Date: ${flight.date}
+Time: ${flight.departureTime} - ${flight.arrivalTime}
+
+Total Amount: $${total.toFixed(2)} USD
+
+Please provide me with payment instructions so I can complete this booking.
+
+Thank you,
+${passengerDetails?.fullName || 'Customer'}
+    `.trim();
+
+    const mailtoLink = `mailto:${AGENCY_CONTACT_EMAIL}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    window.location.href = mailtoLink;
+  };
 
   if (loadingMethods) {
     return (
@@ -379,443 +473,161 @@ export default function PaymentPage() {
             <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
               <CheckCircle className="w-10 h-10 text-green-600" />
             </div>
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">Payment Successful!</h2>
-            <p className="text-gray-600 mb-6">Your booking is being confirmed. Redirecting...</p>
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">Booking Created!</h2>
+            <p className="text-gray-600 mb-6">Taking you to confirmation page...</p>
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
           </div>
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            {/* Payment Form */}
+            {/* ============================================================ */}
+            {/* LEFT PANEL - Booking Section */}
+            {/* ============================================================ */}
             <div className="lg:col-span-2">
-              <div className="bg-white rounded-2xl shadow-xl p-8">
-                <h2 className="text-2xl font-bold text-gray-900 mb-6">Payment Details</h2>
+              <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
+                {/* Header */}
+                <div className="bg-gradient-to-r from-blue-600 to-indigo-600 p-8">
+                  <div className="flex items-center gap-4">
+                    <div className="w-16 h-16 bg-white/20 backdrop-blur rounded-2xl flex items-center justify-center">
+                      <MessageCircle className="w-8 h-8 text-white" />
+                    </div>
+                    <div>
+                      <h1 className="text-3xl font-bold text-white mb-2">Complete Your Booking</h1>
+                      <p className="text-blue-100">Confirm your booking and pay via our agent</p>
+                    </div>
+                  </div>
+                </div>
 
-                {/* Security Badge */}
-                <div className="bg-green-50 border border-green-200 rounded-xl p-4 mb-8 flex items-start gap-3">
-                  <Shield className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
-                  <div>
-                    <p className="font-semibold text-green-800">Secure Payment</p>
-                    <p className="text-sm text-green-700">
-                      Your payment information is encrypted and secure. We never store your full card details.
+                {/* Body */}
+                <div className="p-8 space-y-6">
+                  {/* ============================================ */}
+                  {/* BOOKING WINDOW TIMER / CANNOT BOOK ALERT */}
+                  {/* ============================================ */}
+                  {!canBook ? (
+                    // Case 1: Cannot book (too late or expired)
+                    <div className="bg-red-50 border-2 border-red-300 rounded-xl p-6">
+                      <div className="flex items-start gap-4">
+                        <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center flex-shrink-0">
+                          <XCircle className="w-6 h-6 text-red-600" />
+                        </div>
+                        <div className="flex-1">
+                          <h3 className="text-lg font-bold text-red-900 mb-2">
+                            Booking Not Available
+                          </h3>
+                          <p className="text-red-800 text-sm leading-relaxed mb-4">
+                            {bookingError}
+                          </p>
+                          <button
+                            onClick={() => navigate('/')}
+                            className="text-sm font-semibold text-red-700 hover:text-red-900 underline"
+                          >
+                            ← Search for other flights
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    // Case 2: Booking available - show timer
+                    <div className="bg-gradient-to-r from-amber-50 to-orange-50 border-2 border-amber-300 rounded-xl p-6">
+                      <div className="flex items-start gap-4">
+                        <div className="w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center flex-shrink-0 animate-pulse">
+                          <Clock className="w-6 h-6 text-amber-600" />
+                        </div>
+                        <div className="flex-1">
+                          <h3 className="text-lg font-bold text-amber-900 mb-1">
+                            ⏰ Complete Your Payment Within 5 Hours
+                          </h3>
+                          <p className="text-amber-800 text-sm mb-3">
+                            Your seat is being held. Complete the booking and payment before:
+                          </p>
+                          <div className="flex flex-wrap items-center gap-4">
+                            <div className="bg-white rounded-lg px-4 py-2 border border-amber-200">
+                              <p className="text-xs text-gray-500">Deadline</p>
+                              <p className="text-sm font-bold text-gray-900">
+                                {formatDeadline(bookingDeadline)}
+                              </p>
+                            </div>
+                            <div className="bg-white rounded-lg px-4 py-2 border border-amber-200">
+                              <p className="text-xs text-gray-500">Time Remaining</p>
+                              <p className="text-sm font-bold text-amber-600 font-mono">
+                                {formatTimeRemaining(timeRemaining)}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Booking Rules Info */}
+                  <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
+                    <div className="flex items-start gap-3">
+                      <Info className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                      <div className="text-sm text-blue-800">
+                        <p className="font-semibold mb-1">Booking Rules</p>
+                        <ul className="space-y-1 text-blue-700">
+                          <li>• You have 5 hours to complete payment after booking</li>
+                          <li>• Bookings cannot be made within 30 minutes of departure</li>
+                          <li>• Unpaid bookings will be automatically cancelled</li>
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Flight Departure Info */}
+                  <div className="bg-gray-50 rounded-xl p-4">
+                    <div className="flex items-center gap-3 mb-2">
+                      <Plane className="w-5 h-5 text-blue-600" />
+                      <h3 className="font-bold text-gray-900">Flight Departure</h3>
+                    </div>
+                    <p className="text-sm text-gray-700">
+                      <span className="font-semibold">{flight.from?.code}</span> →{' '}
+                      <span className="font-semibold">{flight.to?.code}</span>
+                      <span className="mx-2">•</span>
+                      <Calendar className="w-4 h-4 inline mb-0.5" />{' '}
+                      {flight.date}
+                      <span className="mx-2">•</span>
+                      <Clock className="w-4 h-4 inline mb-0.5" />{' '}
+                      {flight.departureTime}
                     </p>
                   </div>
-                </div>
 
-                {/* Payment Method Selection - Grouped */}
-                <div className="mb-8">
-                  <label className="block text-sm font-medium text-gray-700 mb-4">
-                    Select Payment Method
-                  </label>
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                    {groupedMethods.map((method) => (
-                      <button
-                        key={method.id}
-                        type="button"
-                        onClick={() => setPaymentMethod(method.name)}
-                        className={`p-4 border-2 rounded-xl transition-all ${
-                          paymentMethod === method.name
-                            ? 'border-blue-600 bg-blue-50'
-                            : 'border-gray-200 hover:border-gray-300'
-                        }`}
-                      >
-                        <div className="flex flex-col items-center text-center gap-2">
-                          <div className={paymentMethod === method.name ? 'text-blue-600' : 'text-gray-600'}>
-                            {iconMap[method.icon] || <CreditCard className="w-5 h-5" />}
-                          </div>
-                          <span className="text-sm font-medium text-gray-900">{method.display_name}</span>
-                          <span className="text-xs text-gray-500">{method.description}</span>
-                        </div>
-                      </button>
-                    ))}
+                  {/* ============================================ */}
+                  {/* BOOK NOW BUTTON */}
+                  {/* ============================================ */}
+                  <button
+                    onClick={handleBook}
+                    disabled={!canBook || processing}
+                    className={`w-full font-bold py-5 px-6 rounded-xl transition-all flex items-center justify-center gap-3 text-lg shadow-lg ${
+                      !canBook
+                        ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                        : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-blue-600/30 hover:shadow-xl hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed'
+                    }`}
+                  >
+                    {processing ? (
+                      <>
+                        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-white"></div>
+                        Creating Booking...
+                      </>
+                    ) : (
+                      <>
+                        <CheckCircle className="w-6 h-6" />
+                        Book Now
+                      </>
+                    )}
+                  </button>
+
+                  {/* Trust Note */}
+                  <div className="flex items-center justify-center gap-2 text-xs text-gray-500">
+                    <Shield className="w-4 h-4 text-green-600" />
+                    <span>Your information is safe and will only be used for this booking</span>
                   </div>
                 </div>
-
-                <form onSubmit={handlePayment}>
-                  {/* Credit Card Form */}
-                  {paymentMethod === 'card' && (
-                    <div className="space-y-6">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Card Number *
-                        </label>
-                        <input
-                          type="text"
-                          value={cardDetails.cardNumber}
-                          onChange={(e) => setCardDetails({
-                            ...cardDetails,
-                            cardNumber: formatCardNumber(e.target.value)
-                          })}
-                          className={`w-full px-4 py-3 border-2 rounded-xl focus:outline-none focus:ring-4 transition-all ${
-                            errors.cardNumber
-                              ? 'border-red-300 focus:border-red-500 focus:ring-red-100'
-                              : 'border-gray-200 focus:border-blue-500 focus:ring-blue-100'
-                          }`}
-                          placeholder="1234 5678 9012 3456"
-                          maxLength="19"
-                        />
-                        {errors.cardNumber && (
-                          <p className="text-red-500 text-xs mt-1 flex items-center gap-1">
-                            <AlertCircle size={12} />
-                            {errors.cardNumber}
-                          </p>
-                        )}
-                      </div>
-
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Cardholder Name *
-                        </label>
-                        <input
-                          type="text"
-                          value={cardDetails.cardholderName}
-                          onChange={(e) => setCardDetails({ ...cardDetails, cardholderName: e.target.value })}
-                          className={`w-full px-4 py-3 border-2 rounded-xl focus:outline-none focus:ring-4 transition-all ${
-                            errors.cardholderName
-                              ? 'border-red-300 focus:border-red-500 focus:ring-red-100'
-                              : 'border-gray-200 focus:border-blue-500 focus:ring-blue-100'
-                          }`}
-                          placeholder="John Doe"
-                        />
-                        {errors.cardholderName && (
-                          <p className="text-red-500 text-xs mt-1 flex items-center gap-1">
-                            <AlertCircle size={12} />
-                            {errors.cardholderName}
-                          </p>
-                        )}
-                      </div>
-
-                      <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Expiry Date *
-                          </label>
-                          <input
-                            type="text"
-                            value={cardDetails.expiryDate}
-                            onChange={(e) => setCardDetails({ ...cardDetails, expiryDate: e.target.value })}
-                            className={`w-full px-4 py-3 border-2 rounded-xl focus:outline-none focus:ring-4 transition-all ${
-                              errors.expiryDate
-                                ? 'border-red-300 focus:border-red-500 focus:ring-red-100'
-                                : 'border-gray-200 focus:border-blue-500 focus:ring-blue-100'
-                            }`}
-                            placeholder="MM/YY"
-                            maxLength="5"
-                          />
-                          {errors.expiryDate && (
-                            <p className="text-red-500 text-xs mt-1 flex items-center gap-1">
-                              <AlertCircle size={12} />
-                              {errors.expiryDate}
-                            </p>
-                          )}
-                        </div>
-
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">
-                            CVV *
-                          </label>
-                          <input
-                            type="text"
-                            value={cardDetails.cvv}
-                            onChange={(e) => setCardDetails({ ...cardDetails, cvv: e.target.value })}
-                            className={`w-full px-4 py-3 border-2 rounded-xl focus:outline-none focus:ring-4 transition-all ${
-                              errors.cvv
-                                ? 'border-red-300 focus:border-red-500 focus:ring-red-100'
-                                : 'border-gray-200 focus:border-blue-500 focus:ring-blue-100'
-                            }`}
-                            placeholder="123"
-                            maxLength="4"
-                          />
-                          {errors.cvv && (
-                            <p className="text-red-500 text-xs mt-1 flex items-center gap-1">
-                              <AlertCircle size={12} />
-                              {errors.cvv}
-                            </p>
-                          )}
-                        </div>
-                      </div>
-
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Billing Address *
-                        </label>
-                        <textarea
-                          value={cardDetails.billingAddress}
-                          onChange={(e) => setCardDetails({ ...cardDetails, billingAddress: e.target.value })}
-                          rows="3"
-                          className={`w-full px-4 py-3 border-2 rounded-xl focus:outline-none focus:ring-4 transition-all ${
-                            errors.billingAddress
-                              ? 'border-red-300 focus:border-red-500 focus:ring-red-100'
-                              : 'border-gray-200 focus:border-blue-500 focus:ring-blue-100'
-                          }`}
-                          placeholder="123 Main St, New York, NY 10001"
-                        />
-                        {errors.billingAddress && (
-                          <p className="text-red-500 text-xs mt-1 flex items-center gap-1">
-                            <AlertCircle size={12} />
-                            {errors.billingAddress}
-                          </p>
-                        )}
-                      </div>
-
-                      <button
-                        type="submit"
-                        disabled={processing}
-                        className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold py-4 px-6 rounded-xl transition-all flex items-center justify-center gap-2 text-lg shadow-lg shadow-blue-600/20 disabled:opacity-50 disabled:cursor-not-allowed mt-8"
-                      >
-                        {processing ? (
-                          <>
-                            <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-                            PROCESSING...
-                          </>
-                        ) : (
-                          <>
-                            <Lock className="w-5 h-5" />
-                            Pay ${calculateTotal().toFixed(2)}
-                          </>
-                        )}
-                      </button>
-                    </div>
-                  )}
-
-                  {/* PayPal Form */}
-                  {paymentMethod === 'paypal' && (
-                    <div className="space-y-6">
-                      <div className="bg-blue-50 border border-blue-200 rounded-xl p-6 text-center">
-                        <Wallet className="w-16 h-16 text-blue-600 mx-auto mb-4" />
-                        <h3 className="text-xl font-semibold text-gray-900 mb-2">Pay with PayPal</h3>
-                        <p className="text-gray-600 mb-6">
-                          You'll be redirected to our secure payment processing page where you can complete your PayPal payment.
-                        </p>
-
-                        <div className="bg-white rounded-xl p-4 mb-6 text-left">
-                          <p className="text-sm text-gray-600 mb-2">
-                            <span className="font-medium">Amount to Pay:</span> ${calculateTotal().toFixed(2)} USD
-                          </p>
-                          <p className="text-sm text-gray-600">
-                            <span className="font-medium">PayPal Email:</span> payments@skywings.com
-                          </p>
-                        </div>
-
-                        <button
-                          onClick={handlePayPalPayment}
-                          className="w-full bg-blue-600 text-white py-4 px-6 rounded-xl hover:bg-blue-700 transition font-semibold"
-                        >
-                          Continue to Payment Processing
-                        </button>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Cryptocurrency Form - Grouped */}
-                  {paymentMethod === 'crypto' && (
-                    <div className="space-y-6">
-                      <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4 mb-6">
-                        <p className="text-sm text-yellow-800">
-                          Select your preferred cryptocurrency. You'll be shown the exact amount to send and a wallet address.
-                        </p>
-                      </div>
-
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Select Cryptocurrency
-                        </label>
-                        <div className="grid grid-cols-2 gap-4 mb-6">
-                          {paymentMethods
-                            .filter(m => m.method_type === 'crypto')
-                            .map((crypto) => (
-                              <button
-                                key={crypto.id}
-                                type="button"
-                                onClick={() => setCryptoDetails({ ...cryptoDetails, currency: crypto.name.toUpperCase() })}
-                                className={`p-4 border-2 rounded-xl transition-all ${
-                                  cryptoDetails.currency === crypto.name.toUpperCase()
-                                    ? 'border-orange-500 bg-orange-50'
-                                    : 'border-gray-200 hover:border-gray-300'
-                                }`}
-                              >
-                                <div className="flex flex-col items-center">
-                                  <Bitcoin className={`w-8 h-8 mb-2 ${
-                                    cryptoDetails.currency === crypto.name.toUpperCase() ? 'text-orange-500' : 'text-gray-600'
-                                  }`} />
-                                  <span className="text-sm font-medium">{crypto.display_name}</span>
-                                </div>
-                              </button>
-                            ))}
-                        </div>
-                      </div>
-
-                      <div className="bg-gray-50 rounded-xl p-4">
-                        <p className="text-sm text-gray-600 mb-2">
-                          <span className="font-medium">Amount to Pay:</span> ${calculateTotal().toFixed(2)} USD
-                        </p>
-                        <p className="text-sm text-gray-600">
-                          <span className="font-medium">Estimated {cryptoDetails.currency}:</span>{' '}
-                          {(calculateTotal() / getCryptoPrice(cryptoDetails.currency)).toFixed(8)} {cryptoDetails.currency}
-                        </p>
-                      </div>
-
-                      <button
-                        onClick={() => handleCryptoPayment(cryptoDetails.currency)}
-                        className="w-full bg-gradient-to-r from-orange-500 to-yellow-500 hover:from-orange-600 hover:to-yellow-600 text-white font-semibold py-4 px-6 rounded-xl transition-all flex items-center justify-center gap-2 text-lg shadow-lg"
-                      >
-                        <Bitcoin className="w-5 h-5" />
-                        Continue to Payment Processing
-                      </button>
-                    </div>
-                  )}
-
-                  {/* Wire Transfer Form */}
-                  {paymentMethod === 'wire' && (
-                    <div className="space-y-6">
-                      <div className="bg-blue-50 border border-blue-200 rounded-xl p-6">
-                        <h4 className="font-semibold text-blue-900 mb-4">Wire Transfer Instructions</h4>
-
-                        <div className="bg-white rounded-xl p-4 mb-6">
-                          <p className="text-sm text-gray-600 mb-2">
-                            <span className="font-medium">Amount to Transfer:</span> ${calculateTotal().toFixed(2)} USD
-                          </p>
-                          <p className="text-sm text-gray-600">
-                            <span className="font-medium">Reference Number:</span> SW{Date.now().toString().slice(-8)}
-                          </p>
-                        </div>
-
-                        <div className="space-y-3 text-sm text-gray-700">
-                          <p>1. Log in to your online banking</p>
-                          <p>2. Add SkyWings Inc. as a payee</p>
-                          <p>3. Transfer the exact amount shown above</p>
-                          <p>4. Include the reference number in the notes</p>
-                        </div>
-
-                        <button
-                          onClick={handleWireTransfer}
-                          className="w-full mt-6 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-semibold py-4 px-6 rounded-xl transition-all"
-                        >
-                          Continue to Payment Processing
-                        </button>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Cash App Form */}
-                  {paymentMethod === 'cashapp' && (
-                    <div className="space-y-6">
-                      <div className="bg-green-50 border border-green-200 rounded-xl p-6 text-center">
-                        <Smartphone className="w-16 h-16 text-green-600 mx-auto mb-4" />
-                        <h3 className="text-xl font-semibold text-gray-900 mb-2">Pay with Cash App</h3>
-                        <p className="text-gray-600 mb-6">
-                          Send payment via Cash App to the details below.
-                        </p>
-
-                        <div className="bg-white rounded-xl p-4 mb-6 text-left">
-                          <p className="text-sm text-gray-600 mb-2">
-                            <span className="font-medium">Amount to Pay:</span> ${calculateTotal().toFixed(2)} USD
-                          </p>
-                          <p className="text-sm text-gray-600">
-                            <span className="font-medium">Cash App Tag:</span> $SkyWings
-                          </p>
-                        </div>
-
-                        <button
-                          onClick={handleCashAppPayment}
-                          className="w-full bg-green-600 text-white py-4 px-6 rounded-xl hover:bg-green-700 transition font-semibold"
-                        >
-                          Continue to Payment Processing
-                        </button>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Venmo Form */}
-                  {paymentMethod === 'venmo' && (
-                    <div className="space-y-6">
-                      <div className="bg-blue-50 border border-blue-200 rounded-xl p-6 text-center">
-                        <Wallet className="w-16 h-16 text-blue-600 mx-auto mb-4" />
-                        <h3 className="text-xl font-semibold text-gray-900 mb-2">Pay with Venmo</h3>
-                        <p className="text-gray-600 mb-6">
-                          Send payment via Venmo to the details below.
-                        </p>
-
-                        <div className="bg-white rounded-xl p-4 mb-6 text-left">
-                          <p className="text-sm text-gray-600 mb-2">
-                            <span className="font-medium">Amount to Pay:</span> ${calculateTotal().toFixed(2)} USD
-                          </p>
-                          <p className="text-sm text-gray-600">
-                            <span className="font-medium">Venmo Username:</span> @SkyWings
-                          </p>
-                        </div>
-
-                        <button
-                          onClick={handleVenmoPayment}
-                          className="w-full bg-blue-500 text-white py-4 px-6 rounded-xl hover:bg-blue-600 transition font-semibold"
-                        >
-                          Continue to Payment Processing
-                        </button>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Apple Pay Form */}
-                  {paymentMethod === 'applepay' && (
-                    <div className="space-y-6">
-                      <div className="text-center py-12">
-                        <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                          <Smartphone className="w-10 h-10 text-gray-600" />
-                        </div>
-                        <h3 className="text-xl font-semibold text-gray-900 mb-2">Apple Pay</h3>
-                        <p className="text-gray-600 mb-6">Fast, secure, and private payment with Apple Pay.</p>
-                        
-                        <div className="bg-gray-50 rounded-xl p-4 mb-6">
-                          <p className="text-sm text-gray-600 mb-2">
-                            <span className="font-medium">Amount to Pay:</span> ${calculateTotal().toFixed(2)} USD
-                          </p>
-                        </div>
-
-                        <button
-                          onClick={handleApplePayPayment}
-                          className="w-full bg-black text-white py-4 px-6 rounded-xl hover:bg-gray-800 transition font-semibold"
-                        >
-                          Continue with Apple Pay
-                        </button>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Google Pay Form */}
-                  {paymentMethod === 'googlepay' && (
-                    <div className="space-y-6">
-                      <div className="text-center py-12">
-                        <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                          <Globe className="w-10 h-10 text-gray-600" />
-                        </div>
-                        <h3 className="text-xl font-semibold text-gray-900 mb-2">Google Pay</h3>
-                        <p className="text-gray-600 mb-6">Fast, secure, and simple checkout with Google Pay.</p>
-                        
-                        <div className="bg-gray-50 rounded-xl p-4 mb-6">
-                          <p className="text-sm text-gray-600 mb-2">
-                            <span className="font-medium">Amount to Pay:</span> ${calculateTotal().toFixed(2)} USD
-                          </p>
-                        </div>
-
-                        <button
-                          onClick={handleGooglePayPayment}
-                          className="w-full bg-blue-500 text-white py-4 px-6 rounded-xl hover:bg-blue-600 transition font-semibold"
-                        >
-                          Continue with Google Pay
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                </form>
-
-                {/* Security Note */}
-                <p className="text-xs text-gray-400 text-center mt-6">
-                  <Lock className="w-3 h-3 inline mr-1" />
-                  All transactions are secure and encrypted. We never store your payment details.
-                </p>
               </div>
             </div>
 
-            {/* Order Summary */}
+            {/* ============================================================ */}
+            {/* RIGHT PANEL - Order Summary */}
+            {/* ============================================================ */}
             <div className="lg:col-span-1">
               <div className="bg-white rounded-2xl shadow-xl p-6 sticky top-24">
                 <h3 className="text-xl font-bold text-gray-900 mb-6">Order Summary</h3>
@@ -877,15 +689,33 @@ export default function PaymentPage() {
                   </div>
                 </div>
 
-                {/* Warning about secure connection */}
-                <div className="mt-6 p-3 bg-yellow-50 rounded-lg">
-                  <p className="text-xs text-yellow-700 flex items-start gap-2">
-                    <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
-                    {/* <span>
-                      This is a demo. No real payments will be processed. In production, this would use a secure payment gateway.
-                    </span> */}
-                  </p>
-                </div>
+                {/* Booking Window Warning */}
+                {canBook && timeRemaining && (
+                  <div className="mt-6 p-4 bg-amber-50 rounded-lg border border-amber-200">
+                    <div className="flex items-start gap-2">
+                      <Clock className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
+                      <div>
+                        <p className="text-xs font-semibold text-amber-800 mb-1">
+                          Booking Window Active
+                        </p>
+                        <p className="text-xs text-amber-700">
+                          Time remaining: <span className="font-bold font-mono">{formatTimeRemaining(timeRemaining)}</span>
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {!canBook && (
+                  <div className="mt-6 p-4 bg-red-50 rounded-lg border border-red-200">
+                    <div className="flex items-start gap-2">
+                      <XCircle className="w-4 h-4 text-red-600 flex-shrink-0 mt-0.5" />
+                      <p className="text-xs text-red-700">
+                        Booking is not available. Please search for another flight.
+                      </p>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>
