@@ -28,6 +28,7 @@ export default function HomePage() {
   useEffect(() => {
     const fetchPopularDestinations = async () => {
       try {
+        setLoading(true);
         // Get all flights
         const flights = await flightService.getFlights();
 
@@ -46,6 +47,8 @@ export default function HomePage() {
               toCountry: flight.to_country,
               price: flight.price,
               airline: flight.airline,
+              // Store the earliest date
+              earliestDate: flight.date,
               // Count how many flights on this route
               count: 1
             });
@@ -55,6 +58,10 @@ export default function HomePage() {
             // Keep the lowest price
             if (flight.price < existing.price) {
               existing.price = flight.price;
+            }
+            // Keep the earliest date
+            if (flight.date < existing.earliestDate) {
+              existing.earliestDate = flight.date;
             }
           }
         });
@@ -67,7 +74,6 @@ export default function HomePage() {
         setPopularDestinations(routes);
       } catch (error) {
         console.error('Error fetching popular destinations:', error);
-        // Fallback to default destinations if Supabase fails
         setPopularDestinations([
           {
             fromCode: 'JFK',
@@ -76,7 +82,8 @@ export default function HomePage() {
             toCode: 'LAX',
             toCity: 'Los Angeles',
             toCountry: 'USA',
-            price: 299
+            price: 299,
+            earliestDate: new Date().toISOString().split('T')[0]
           },
           {
             fromCode: 'LHR',
@@ -85,9 +92,9 @@ export default function HomePage() {
             toCode: 'DXB',
             toCity: 'Dubai',
             toCountry: 'UAE',
-            price: 589
+            price: 589,
+            earliestDate: new Date().toISOString().split('T')[0]
           },
-          // Add more fallbacks as needed
         ]);
       } finally {
         setLoading(false);
@@ -152,7 +159,10 @@ export default function HomePage() {
   };
 
   const handleDestinationClick = (dest) => {
-    // Navigate to results page with the route - NO DATE FILTER!
+    // Use the earliest date from the route, or fallback to today
+    const searchDate = dest.earliestDate || new Date().toISOString().split('T')[0];
+
+    // Navigate to results page with the route AND the date
     navigate('/results', {
       state: {
         from: dest.fromCode,
@@ -161,8 +171,7 @@ export default function HomePage() {
         to: dest.toCode,
         toCity: dest.toCity,
         toDisplay: `${dest.toCity} (${dest.toCode})`,
-        // Remove the date filter - let the results page show all dates
-        // departDate: new Date().toISOString().split('T')[0], // REMOVED THIS LINE
+        departDate: searchDate,     // ✅ Now includes the date!
         returnDate: null,
         tripType: 'oneWay',
         passengers: '1 Passenger, Economy',
@@ -188,6 +197,7 @@ export default function HomePage() {
 
   const getDestinationImage = (city) => {
     const images = {
+      'Berlin': 'https://images.unsplash.com/photo-1560969184-10fe8719e047?auto=format&fit=crop&w=1000&q=80](https://images.unsplash.com/photo-1560969184-10fe8719e047?auto=format&fit=crop&w=1000&q=80',
       'London': 'https://images.unsplash.com/photo-1513635269975-59663e0ac1ad?w=800&q=80',
       'Tokyo': 'https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?w=800&q=80',
       'Dubai': 'https://images.unsplash.com/photo-1512453979798-5ea266f8880c?w=800&q=80',
@@ -200,9 +210,10 @@ export default function HomePage() {
       'Singapore': 'https://images.unsplash.com/photo-1525625299086-3fcd6bd1e5c0?w=800&q=80',
       'Rome': 'https://images.unsplash.com/photo-1552832230-c0197dd311b5?w=800&q=80',
       'Barcelona': 'https://images.unsplash.com/photo-1583429578889-30f6b80d6c68?w=800&q=80',
-      'Istanbul': 'https://images.unsplash.com/photo-1541432901042-2d8bd64b4a9b?w=800&q=80',
+      'Istanbul': 'https://images.unsplash.com/photo-1524231757912-21f4fe3a7200?auto=format&fit=crop&w=1000&q=80',
       'Hong Kong': 'https://images.unsplash.com/photo-1506973035872-a4ec16b8e8d9?w=800&q=80',
-      'Seoul': 'https://images.unsplash.com/photo-1517154421773-0529f29ea451?w=800&q=80'
+      'Seoul': 'https://images.unsplash.com/photo-1517154421773-0529f29ea451?w=800&q=80',
+      'Minsk': ''
     };
     return images[city] || 'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=800&q=80';
   };
@@ -291,6 +302,16 @@ export default function HomePage() {
                   const fromCountry = dest.fromCountry || 'International';
                   const toCountry = dest.toCountry || 'International';
 
+                  // Format the date for display
+                  const formatDate = (dateStr) => {
+                    if (!dateStr) return null;
+                    return new Date(dateStr).toLocaleDateString('en-US', {
+                      month: 'short',
+                      day: 'numeric',
+                      year: 'numeric'
+                    });
+                  };
+
                   return (
                     <div
                       key={idx}
@@ -324,6 +345,12 @@ export default function HomePage() {
                           <div>
                             <p className="text-sm text-white/70">Starting from</p>
                             <p className="text-2xl font-bold">${dest.price}</p>
+                            {/* ✅ NEW: Show earliest date */}
+                            {dest.earliestDate && (
+                              <p className="text-xs text-white/60 mt-1">
+                                📅 From {formatDate(dest.earliestDate)}
+                              </p>
+                            )}
                           </div>
                           <div className="bg-white/20 backdrop-blur-md p-3 rounded-full group-hover:bg-blue-600 transition-colors">
                             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

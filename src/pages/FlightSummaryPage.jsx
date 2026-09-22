@@ -41,11 +41,26 @@ export default function FlightSummaryPage() {
     }
   };
 
-  const getFlightDate = () => {
-    if (flight.departureDate) return formatDate(flight.departureDate);
-    if (searchParams?.departDate) return formatDate(searchParams.departDate);
-    return 'Date not specified';
-  };
+  // Replace your existing getFlightDate function with this:
+const getFlightDate = () => {
+  const rawDate = flight?.date || flight?.departureDate || searchParams?.departDate;
+  
+  if (!rawDate) return 'Date not specified';
+  
+  try {
+    const date = new Date(rawDate);
+    if (isNaN(date.getTime())) return rawDate;
+    
+    return date.toLocaleDateString('en-US', {
+      weekday: 'short',
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric'
+    });
+  } catch {
+    return rawDate;
+  }
+};
 
   const formatTime = (time) => time;
 
@@ -72,7 +87,7 @@ export default function FlightSummaryPage() {
     <div className="min-h-screen bg-gray-50">
       <Header />
       
-      <div className="max-w-5xl mx-auto px-4 pt-28 pb-8">
+      <div className="max-w-5xl mx-auto px-4 pt-28 pb-8 ">
         {/* Back Button */}
         <button 
           onClick={() => navigate(-1)}
