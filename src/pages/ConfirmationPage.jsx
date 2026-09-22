@@ -26,7 +26,7 @@ import {
 // ============================================================
 // CONFIGURATION: Change these to your agency's contact details
 // ============================================================
-const AGENCY_CONTACT_EMAIL = 'stayfly.agency@gmail.com';
+const AGENCY_CONTACT_EMAIL = 'stayflyagent@gmail.com';
 const AGENCY_NAME = 'StayFly Travel Agency';
 
 export default function ConfirmationPage() {
@@ -330,7 +330,7 @@ ${booking?.passenger_name || 'Customer'}
                 <li className="flex items-start gap-3">
                   <span className="w-6 h-6 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center flex-shrink-0 text-xs font-bold">5</span>
                   <span className="text-sm text-gray-700">
-                    Complete payment and receive your e-ticket via email
+                    Make payment and receive your e-ticket via email
                   </span>
                 </li>
               </ol>

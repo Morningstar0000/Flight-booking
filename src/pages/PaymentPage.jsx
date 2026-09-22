@@ -415,42 +415,6 @@ export default function PaymentPage() {
     return calculateSubtotal() + calculateTaxes();
   };
 
-  // ============================================================
-  // Handle "Contact Agent" button click
-  // ============================================================
-  const handleContactAgent = () => {
-    const total = calculateTotal();
-    const bookingRef = createdBooking?.booking_reference || 'TEMP-' + Date.now().toString().slice(-6);
-    
-    const subject = `Payment Inquiry - Booking ${bookingRef}`;
-    const body = `
-Dear ${AGENCY_NAME},
-
-I would like to complete payment for my booking.
-
-BOOKING DETAILS
---------------
-Booking Reference: ${bookingRef}
-Passenger Name: ${passengerDetails?.fullName || 'N/A'}
-Email: ${passengerDetails?.email || 'N/A'}
-Phone: ${passengerDetails?.phone || 'N/A'}
-
-Flight: ${flight.airline} ${flight.flightNumber}
-Route: ${flight.from?.code} → ${flight.to?.code}
-Date: ${flight.date}
-Time: ${flight.departureTime} - ${flight.arrivalTime}
-
-Total Amount: $${total.toFixed(2)} USD
-
-Please provide me with payment instructions so I can complete this booking.
-
-Thank you,
-${passengerDetails?.fullName || 'Customer'}
-    `.trim();
-
-    const mailtoLink = `mailto:${AGENCY_CONTACT_EMAIL}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-    window.location.href = mailtoLink;
-  };
 
   if (loadingMethods) {
     return (
@@ -492,7 +456,7 @@ ${passengerDetails?.fullName || 'Customer'}
                     </div>
                     <div>
                       <h1 className="text-3xl font-bold text-white mb-2">Complete Your Booking</h1>
-                      <p className="text-blue-100">Confirm your booking and pay via our agent</p>
+    
                     </div>
                   </div>
                 </div>
