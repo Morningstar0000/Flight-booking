@@ -422,7 +422,7 @@ export default function HotelsPage() {
                         {/* Price Tag - Updated to green */}
                         <div className="absolute bottom-4 right-4 bg-white/95 backdrop-blur-sm rounded-xl px-4 py-2 shadow-lg">
                           <p className="text-xs text-gray-500">Starting from</p>
-                          <p className="text-2xl font-bold text-emerald-600">${hotel.offers?.[0]?.price?.total || 199}</p>
+                          <p className="text-2xl font-bold text-emerald-600">€{hotel.offers?.[0]?.price?.total || 199}</p>
                         </div>
                       </div>
 
@@ -565,7 +565,7 @@ export default function HotelsPage() {
                         {/* Stats */}
                         <div className="flex items-center justify-between border-t border-white/20 pt-4">
                           <div>
-                            <p className="text-2xl font-bold">${dest.price}</p>
+                            <p className="text-2xl font-bold text-white">€{dest.price}</p>
                             <p className="text-xs text-white/60">avg/night</p>
                           </div>
                           <div className="text-right">

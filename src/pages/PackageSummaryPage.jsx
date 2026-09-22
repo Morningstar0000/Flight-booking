@@ -354,7 +354,7 @@ export default function PackageSummaryPage() {
                 <Plane className="w-4 h-4" />
                 Flight
               </span>
-              <span className="font-semibold">${flight.price}</span>
+              <span className="font-semibold">€{flight.price}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-gray-600 flex items-center gap-2">
@@ -366,11 +366,11 @@ export default function PackageSummaryPage() {
             <div className="border-t border-gray-200 my-2 pt-2">
               <div className="flex justify-between text-lg font-bold">
                 <span>Total Package Price</span>
-                <span className="text-blue-600">${totalPrice}</span>
+                <span className="text-blue-600">€{totalPrice}</span>
               </div>
               <p className="text-xs text-green-600 mt-1 flex items-center gap-1">
                 <Award className="w-4 h-4" />
-                You save ${Math.round(totalPrice * 0.1)} by booking together
+                You save €{Math.round(totalPrice * 0.1)} by booking together
               </p>
             </div>
           </div>

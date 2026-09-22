@@ -518,18 +518,18 @@ ${booking?.passenger_name || 'Customer'}
             <div className="space-y-3">
               <div className="flex justify-between">
                 <span className="text-gray-600">Flight</span>
-                <span className="font-semibold">${flightDetails?.price || booking.total_price}</span>
+                <span className="font-semibold">€{flightDetails?.price || booking.total_price}</span>
               </div>
               {hotelDetails && (
                 <div className="flex justify-between">
                   <span className="text-gray-600">Hotel</span>
-                  <span className="font-semibold">${hotelDetails.price || 0}</span>
+                  <span className="font-semibold">€{hotelDetails.price || 0}</span>
                 </div>
               )}
               <div className="border-t border-gray-200 pt-3 mt-3">
                 <div className="flex justify-between font-bold">
                   <span>Total Amount Due</span>
-                  <span className="text-blue-600 text-xl">${booking.total_price}</span>
+                  <span className="text-blue-600 text-xl">€{booking.total_price}</span>
                 </div>
                 <p className="text-xs text-gray-500 mt-1">
                   Payment pending - contact agent to make payment

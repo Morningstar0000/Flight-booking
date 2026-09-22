@@ -475,8 +475,8 @@ export default function ResultsPage() {
                     className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
                   />
                   <div className="flex justify-between text-sm font-medium">
-                    <span className="text-gray-600">${filters.priceRange[0]}</span>
-                    <span className="text-gray-600">${filters.priceRange[1]}</span>
+                    <span className="text-gray-600">€{filters.priceRange[0]}</span>
+                    <span className="text-gray-600">€{filters.priceRange[1]}</span>
                   </div>
                 </div>
               </div>
@@ -601,7 +601,7 @@ export default function ResultsPage() {
                                   {flight.cabin_class}
                                 </span>
                               </div>
-                              <p className="text-3xl font-bold text-blue-600 mb-2">${flight.price}</p>
+                              <p className="text-3xl font-bold text-blue-600 mb-2">€{flight.price}</p>
                               <p className="text-xs text-gray-500 mb-3">per person</p>
                               <button
                                 onClick={() => handleSelectFlight(flight.id)}

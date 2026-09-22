@@ -224,7 +224,7 @@ const handlePaymentConfirmed = async () => {
             { label: 'Account Number', value: payment_details?.account_number || '1234567890' },
             { label: 'Routing Number', value: payment_details?.routing_number || '021000021' },
             { label: 'SWIFT Code', value: payment_details?.swift_code || 'CHASUS33' },
-            { label: 'Amount to Pay', value: `$${amount?.toFixed(2) || '0.00'} USD` },
+            { label: 'Amount to Pay', value: `€${amount?.toFixed(2) || '0.00'} EUR` },
             { label: 'Reference', value: `SW${Date.now().toString().slice(-8)}` }
           ],
           instructions: instructions || [

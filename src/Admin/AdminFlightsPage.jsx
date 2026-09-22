@@ -401,7 +401,7 @@ export default function AdminFlightsPage() {
                                                 </span>
                                             </td>
                                             <td className="px-6 py-4">
-                                                <span className="font-bold text-green-600">${flight.price}</span>
+                                                <span className="font-bold text-green-600">€{flight.price}</span>
                                             </td>
                                             <td className="px-6 py-4 text-sm text-gray-600">{flight.date}</td>
                                             <td className="px-6 py-4">

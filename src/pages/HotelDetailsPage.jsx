@@ -203,7 +203,7 @@ export default function HotelDetailsPage() {
               {hotel.offers?.[0] && (
                 <div className="mb-4 pb-4 border-b">
                   <p className="text-3xl font-bold text-blue-600 mb-1">
-                    ${hotel.offers[0].price?.total}
+                    €{hotel.offers[0].price?.total}
                   </p>
                   <p className="text-sm text-gray-500">
                     per night • {formatDate(searchParams?.checkIn)} - {formatDate(searchParams?.checkOut)}

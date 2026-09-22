@@ -35,7 +35,7 @@ export default function AdminDashboard() {
         { label: 'Total Flights', value: '156', change: '+12%', icon: <Plane className="w-6 h-6" /> },
         { label: 'Active Payments', value: '8', change: '+2', icon: <CreditCard className="w-6 h-6" /> },
         { label: 'Bookings Today', value: '24', change: '+5', icon: <Users className="w-6 h-6" /> },
-        { label: 'Revenue', value: '$12.4k', change: '+18%', icon: <BarChart3 className="w-6 h-6" /> },
+        { label: 'Revenue', value: '€12.4k', change: '+18%', icon: <BarChart3 className="w-6 h-6" /> },
     ];
 
     // Add logout function

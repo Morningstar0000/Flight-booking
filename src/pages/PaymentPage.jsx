@@ -639,16 +639,16 @@ export default function PaymentPage() {
                 <div className="space-y-3">
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-500">Base Fare</span>
-                    <span className="font-medium">${calculateSubtotal()}</span>
+                    <span className="font-medium">€{calculateSubtotal()}</span>
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-500">Taxes & Fees</span>
-                    <span className="font-medium">${calculateTaxes()}</span>
+                    <span className="font-medium">€{calculateTaxes()}</span>
                   </div>
                   <div className="border-t border-gray-200 pt-3 mt-3">
                     <div className="flex justify-between font-bold">
                       <span>Total</span>
-                      <span className="text-blue-600 text-xl">${calculateTotal().toFixed(2)}</span>
+                      <span className="text-blue-600 text-xl">€{calculateTotal().toFixed(2)}</span>
                     </div>
                   </div>
                 </div>

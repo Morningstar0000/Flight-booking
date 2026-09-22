@@ -315,7 +315,7 @@ export default function AdminBookingsPage() {
                         {formatDate(booking.created_at)}
                       </td>
                       <td className="px-6 py-4">
-                        <span className="font-bold text-green-600">${booking.total_price}</span>
+                        <span className="font-bold text-green-600">€{booking.total_price}</span>
                       </td>
                       <td className="px-6 py-4">
                         <span className={`px-2 py-1 rounded-full text-xs font-medium border ${getStatusBadge(booking.booking_status)}`}>

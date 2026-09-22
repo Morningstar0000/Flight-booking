@@ -265,7 +265,7 @@ export default function PassengerDetailsPage() {
                     <Plane className="w-3 h-3 text-blue-600" />
                     Flight
                   </span>
-                  <span className="font-medium">${flight.price}</span>
+                  <span className="font-medium">€{flight.price}</span>
                 </div>
                 {isPackage && hotel && (
                   <div className="flex justify-between text-sm">
@@ -273,14 +273,14 @@ export default function PassengerDetailsPage() {
                       <Hotel className="w-3 h-3 text-purple-600" />
                       Hotel
                     </span>
-                    <span className="font-medium">${hotelPackage?.hotelPrice}</span>
+                    <span className="font-medium">€{hotelPackage?.hotelPrice}</span>
                   </div>
                 )}
                 <div className="border-t border-gray-200 pt-2 mt-2">
                   <div className="flex justify-between font-bold">
                     <span>Total</span>
                     <span className="text-blue-600 text-lg">
-                      ${isPackage ? totalPrice : flight.price}
+                      €{isPackage ? totalPrice : flight.price}
                     </span>
                   </div>
                   {isPackage && (

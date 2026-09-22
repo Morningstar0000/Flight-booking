@@ -267,12 +267,12 @@ const getFlightDate = () => {
                 <Plane className="w-4 h-4" />
                 Flight
               </span>
-              <span className="font-bold text-xl text-blue-600">${flight.price}</span>
+              <span className="font-bold text-xl text-blue-600">€{flight.price}</span>
             </div>
             <div className="border-t border-gray-200 my-2 pt-2">
               <div className="flex justify-between text-lg font-bold">
                 <span>Total</span>
-                <span className="text-blue-600">${flight.price}</span>
+                <span className="text-blue-600">€{flight.price}</span>
               </div>
             </div>
           </div>

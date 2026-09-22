@@ -344,7 +344,7 @@ export default function HomePage() {
                         <div className="flex justify-between items-center">
                           <div>
                             <p className="text-sm text-white/70">Starting from</p>
-                            <p className="text-2xl font-bold">${dest.price}</p>
+                             <p className="text-2xl font-bold text-white">€{dest.price}</p>
                             {/* ✅ NEW: Show earliest date */}
                             {dest.earliestDate && (
                               <p className="text-xs text-white/60 mt-1">

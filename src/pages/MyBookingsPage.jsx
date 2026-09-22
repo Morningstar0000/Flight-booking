@@ -446,7 +446,7 @@ export default function MyBookingsPage() {
                   </div>
                   <div className="text-right">
                     <p className="text-sm text-gray-500">Amount</p>
-                    <p className="text-2xl font-bold text-gray-900">${booking.total_price}</p>
+                    <p className="text-2xl font-bold text-gray-900">€{booking.total_price}</p>
                     <p className="text-xs text-gray-500 capitalize">via {booking.payment_method}</p>
                   </div>
                 </div>
