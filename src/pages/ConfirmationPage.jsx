@@ -150,7 +150,7 @@ export default function ConfirmationPage() {
       {showToast && <Toast />}
       <Header />
 
-      <div className="max-w-4xl mx-auto px-4 py-8">
+      <div className="max-w-4xl mx-auto px-4 pt-28 pb-8">
         {/* Success Message */}
         <div className="bg-white rounded-2xl shadow-xl overflow-hidden mb-8">
           <div className="bg-gradient-to-r from-green-600 to-emerald-600 p-8 text-center">

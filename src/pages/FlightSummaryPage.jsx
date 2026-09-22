@@ -72,7 +72,7 @@ export default function FlightSummaryPage() {
     <div className="min-h-screen bg-gray-50">
       <Header />
       
-      <div className="max-w-5xl mx-auto px-4 py-8">
+      <div className="max-w-5xl mx-auto px-4 pt-28 pb-8">
         {/* Back Button */}
         <button 
           onClick={() => navigate(-1)}
@@ -191,7 +191,7 @@ export default function FlightSummaryPage() {
                     <p className="font-medium">{flight.seat}</p>
                   </div>
                 </div>
-              )}
+              )} 
               
               {/* Baggage */}
               <div className="flex items-center gap-2">

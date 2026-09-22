@@ -22,7 +22,7 @@ export default function PassengerDetailsPage() {
     return (
       <div className="min-h-screen bg-gray-50">
         <Header />
-        <div className="max-w-7xl mx-auto px-4 py-16 text-center">
+        <div className="max-w-7xl mx-auto px-4 py-16 text-center"> 
           <AlertCircle className="w-16 h-16 text-gray-400 mx-auto mb-4" />
           <p className="text-gray-600">No booking information found.</p>
           <button onClick={() => navigate('/')} className="mt-4 text-blue-600 hover:text-blue-800">
@@ -67,7 +67,7 @@ export default function PassengerDetailsPage() {
     <div className="min-h-screen bg-gray-50">
       <Header />
       
-      <div className="max-w-7xl mx-auto px-4 py-8">
+      <div className="max-w-7xl mx-auto px-4 pt-28 pb-8">
         {/* Back Button */}
         <button 
           onClick={() => navigate(-1)}

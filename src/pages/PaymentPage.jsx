@@ -373,7 +373,7 @@ export default function PaymentPage() {
     <div className="min-h-screen bg-gray-50">
       <Header />
 
-      <div className="max-w-7xl mx-auto px-4 py-8">
+      <div className="max-w-7xl mx-auto px-4 pt-28 pb-8">
         {success ? (
           <div className="bg-white rounded-2xl shadow-xl p-8 text-center max-w-md mx-auto">
             <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
@@ -881,9 +881,9 @@ export default function PaymentPage() {
                 <div className="mt-6 p-3 bg-yellow-50 rounded-lg">
                   <p className="text-xs text-yellow-700 flex items-start gap-2">
                     <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
-                    <span>
+                    {/* <span>
                       This is a demo. No real payments will be processed. In production, this would use a secure payment gateway.
-                    </span>
+                    </span> */}
                   </p>
                 </div>
               </div>
